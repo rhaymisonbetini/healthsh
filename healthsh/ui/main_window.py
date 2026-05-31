@@ -167,6 +167,14 @@ class MainWindow(QMainWindow):
         # Track the widget currently mounted in the header's right slot so we
         # can remove it cleanly when switching screens.
         self._mounted_right_widget: QWidget | None = None
+        # Tray hookup happens after construction via attach_tray(); these
+        # defaults let MainWindow run standalone in tests with no tray.
+        self._tray: object | None = (
+            None  # actually a HealthTray, kept opaque to dodge a circular import
+        )
+        self._minimize_to_tray: bool = True
+        self._tray_toast_shown: bool = False
+        self._real_quit_requested: bool = False
 
         central = QWidget()
         outer = QHBoxLayout(central)
@@ -261,9 +269,70 @@ class MainWindow(QMainWindow):
             self._started = True
 
     def closeEvent(self, event) -> None:  # noqa: D401 — Qt callback name
-        """Stop the collector service cleanly on window close."""
+        """Hide to tray (when available + enabled), else stop service and close."""
+        # Hide-to-tray path: tray attached, tray available, setting enabled,
+        # and we did not get here via an explicit Quit menu click.
+        if (
+            self._tray is not None
+            and self._minimize_to_tray
+            and not self._real_quit_requested
+            and getattr(self._tray, "is_available", lambda: False)()
+        ):
+            event.ignore()
+            self.hide()
+            if not self._tray_toast_shown:
+                self._tray.post_toast(  # type: ignore[union-attr]
+                    "Healthsh", "Still running in the tray. Right-click the icon to quit."
+                )
+                self._tray_toast_shown = True
+            return
         self._collector_service.stop()
         super().closeEvent(event)
+
+    # ---------------------------------------------------------------- tray
+
+    def attach_tray(self, tray) -> None:
+        """Wire the application's :class:`HealthTray` to this window.
+
+        Calling this enables the hide-to-tray behavior. The window restores
+        on ``show_requested`` and quits cleanly on ``quit_requested``.
+        """
+        from PySide6.QtWidgets import QApplication
+
+        self._tray = tray
+        tray.show_requested.connect(self._restore_from_tray)
+        tray.quit_requested.connect(self._on_quit_requested)
+        # Make the tray icon visible.
+        getattr(tray, "show", lambda: None)()
+
+        def _quit() -> None:
+            self._real_quit_requested = True
+            self._collector_service.stop()
+            app = QApplication.instance()
+            if app is not None:
+                app.quit()
+
+        # Stash the bound quit callback so _on_quit_requested can call it.
+        self._do_quit = _quit  # type: ignore[attr-defined]
+
+    def set_minimize_to_tray(self, enabled: bool) -> None:
+        """Toggle hide-to-tray behavior at runtime (Settings will use this)."""
+        self._minimize_to_tray = bool(enabled)
+
+    def _restore_from_tray(self) -> None:
+        if self.isVisible():
+            # Toggle: if already visible, the menu item acts as 'hide'.
+            self.hide()
+            return
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    def _on_quit_requested(self) -> None:
+        # Defer to the bound quit callback installed by attach_tray.
+        quit_callable = getattr(self, "_do_quit", None)
+        if quit_callable is not None:
+            quit_callable()
 
     def collector_service(self) -> CollectorService:
         """Expose the underlying CollectorService (used by tests)."""
