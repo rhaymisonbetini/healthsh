@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "healthsh"
+version = "0.1.0"
+description = "AI-powered Linux desktop system health monitor (Qt 6, Python). Predicts and interprets system state, not just plots metrics."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Rhaymison Betini" },
+]
+keywords = [
+    "linux",
+    "desktop",
+    "system-monitor",
+    "health",
+    "ai",
+    "qt",
+    "pyside6",
+    "observability",
+    "monitoring",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Monitoring",
+    "Topic :: System :: Systems Administration",
+    "Topic :: System :: Hardware",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "PySide6>=6.6",
+    "pyqtgraph>=0.13",
+    "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5",
+    "pytest>=8.0",
+    "pytest-qt>=4.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/rhaymisonbetini/healthsh"
+Repository = "https://github.com/rhaymisonbetini/healthsh"
+Issues = "https://github.com/rhaymisonbetini/healthsh/issues"
+
+[project.scripts]
+healthsh = "healthsh.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["healthsh"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.format]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qt_api = "pyside6"
