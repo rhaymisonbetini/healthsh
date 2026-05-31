@@ -48,3 +48,6 @@ Thumbs.db
 
 # Internal planning doc — kept local only
 HEALTHSH_ROADMAP.md
+
+# Claude Code session state
+.claude/
