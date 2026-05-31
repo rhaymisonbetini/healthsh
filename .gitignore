@@ -45,3 +45,6 @@ Thumbs.db
 # Local secrets / runtime config
 .env
 .env.local
+
+# Internal planning doc — kept local only
+HEALTHSH_ROADMAP.md

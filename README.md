@@ -22,7 +22,7 @@ Everything runs locally. No backend. No telemetry. No analytics.
 
 ## Status
 
-**Pre-alpha.** Development is tracked in [HEALTHSH_ROADMAP.md](./HEALTHSH_ROADMAP.md) — the single source of truth for scope, architecture, design system, and sprint planning. Issues and milestones in this repository map directly to that roadmap.
+**Pre-alpha.** Development is tracked as GitHub [Issues](../../issues) grouped under [Milestones](../../milestones), one per sprint. Each issue carries its own scope, architecture context, design tokens, tasks, and acceptance criteria — open any issue to see what to build and how it fits in.
 
 - **v0.1.0** ships at the end of Sprint 1 (Dashboard + tray, AppImage).
 - **v0.2.0** ships at the end of Sprint 3 (Docker screen).
@@ -43,7 +43,7 @@ Everything runs locally. No backend. No telemetry. No analytics.
 | AI | Tool-calling agents over Ollama / Anthropic / OpenAI |
 | Packaging | PyInstaller + AppImage (`.deb` later) |
 
-See [`HEALTHSH_ROADMAP.md` §2](./HEALTHSH_ROADMAP.md#2-stack-técnica) for rationale per choice.
+Rationale per stack choice lives in the Sprint 0 issues.
 
 ## Architecture
 
@@ -58,7 +58,7 @@ healthsh/
 └── ui/          # PySide6 widgets and screens
 ```
 
-Full tree in [`HEALTHSH_ROADMAP.md` §3](./HEALTHSH_ROADMAP.md#3-arquitetura-de-pastas-do-zero).
+A detailed `ARCHITECTURE.md` ships as part of [Sprint 7](../../milestones).
 
 ## Contributing
 
