@@ -1,0 +1,47 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual envs
+.venv/
+venv/
+env/
+.python-version
+
+# Packaging / build
+build/
+dist/
+*.egg
+*.egg-info/
+*.spec
+*.AppImage
+*.AppDir/
+appimagetool-*
+
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local data (Healthsh history, sqlite, etc.)
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Local secrets / runtime config
+.env
+.env.local
