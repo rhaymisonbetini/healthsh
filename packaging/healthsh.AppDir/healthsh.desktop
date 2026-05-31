@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Healthsh
+GenericName=System Health Monitor
+Comment=AI-powered Linux system health monitor — predicts and interprets, not just plots
+Exec=AppRun
+Icon=healthsh
+Terminal=false
+Categories=Utility;System;Monitor;
+Keywords=monitor;system;health;cpu;ram;docker;ai;
+StartupNotify=true
+StartupWMClass=Healthsh

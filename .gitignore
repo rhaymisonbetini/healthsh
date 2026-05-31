@@ -16,7 +16,6 @@ dist/
 *.egg-info/
 *.spec
 *.AppImage
-*.AppDir/
 appimagetool-*
 
 # Test / lint caches
@@ -51,3 +50,8 @@ HEALTHSH_ROADMAP.md
 
 # Claude Code session state
 .claude/
+
+# AppImage build artifacts
+scripts/appimagetool
+packaging/healthsh.AppDir/usr/
+packaging/healthsh.AppDir/.DirIcon

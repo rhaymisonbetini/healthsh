@@ -1,0 +1,13 @@
+#!/bin/bash
+# AppRun — entry point that the AppImage runtime invokes.
+# Sets up library paths and forwards arguments to the PyInstaller bundle.
+
+set -e
+
+HERE="$(dirname "$(readlink -f "${0}")")"
+
+# Make Qt's platform plugins discoverable when running standalone.
+export QT_QPA_PLATFORM_PLUGIN_PATH="${HERE}/usr/bin/_internal/PySide6/Qt/plugins/platforms"
+
+# Forward to the bundled binary.
+exec "${HERE}/usr/bin/healthsh" "$@"
