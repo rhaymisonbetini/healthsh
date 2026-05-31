@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from healthsh.services.collector_service import CollectorService
 from healthsh.ui.icons import get_icon_pixmap
 from healthsh.ui.screens.ai_screen import AIScreen
 from healthsh.ui.screens.dashboard_screen import DashboardScreen
@@ -152,10 +153,20 @@ class Header(QFrame):
 class MainWindow(QMainWindow):
     """Top-level chrome window with sidebar + stacked content."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, collector_service: CollectorService | None = None) -> None:
         super().__init__()
         self.setWindowTitle("Healthsh")
         self.setMinimumSize(QSize(MIN_WIDTH, MIN_HEIGHT))
+
+        # Service is created if none is injected — tests pass a stub.
+        self._collector_service: CollectorService = collector_service or CollectorService(
+            parent=self
+        )
+        self._collector_service.metrics_ready.connect(self._on_metrics_ready)
+        self._started: bool = False
+        # Track the widget currently mounted in the header's right slot so we
+        # can remove it cleanly when switching screens.
+        self._mounted_right_widget: QWidget | None = None
 
         central = QWidget()
         outer = QHBoxLayout(central)
@@ -206,18 +217,64 @@ class MainWindow(QMainWindow):
     # ---------------------------------------------------------------- routing
 
     def set_screen(self, key: str) -> None:
-        """Switch the visible screen + update the header chrome."""
+        """Switch the visible screen + update the header chrome.
+
+        Also reparents any screen-supplied widget into the header's reserved
+        right slot (currently only the Dashboard's ``live · 1s`` indicator).
+        """
         if key not in self._screens:
             raise KeyError(f"unknown screen key: {key!r}")
         widget = self._screens[key]
         self._stack.setCurrentWidget(widget)
         spec = self._spec_by_key[key]
         self._header.set_section(spec.title, spec.icon)
-        # Each screen may publish its own preferred subtitle; otherwise we fall
-        # back to the default from SCREEN_SPECS.
         subtitle = getattr(widget, "header_subtitle", lambda: spec.default_subtitle)()
         self._header.set_subtitle(subtitle)
         self._sidebar.set_active(key)
+        self._mount_header_right(widget)
+
+    def _mount_header_right(self, screen: QWidget) -> None:
+        """Reparent the screen's optional right-slot widget into the header."""
+        slot = self._header.right_slot()
+        # Remove anything we previously mounted (without destroying the widget,
+        # the screen still owns it).
+        if self._mounted_right_widget is not None:
+            slot.layout().removeWidget(self._mounted_right_widget)
+            self._mounted_right_widget.setParent(None)
+            self._mounted_right_widget = None
+        getter = getattr(screen, "header_right_widget", None)
+        if getter is None:
+            return
+        chrome = getter()
+        if chrome is None:
+            return
+        slot.layout().addWidget(chrome)
+        self._mounted_right_widget = chrome
+
+    # --------------------------------------------------------- lifecycle
+
+    def showEvent(self, event) -> None:  # noqa: D401 — Qt callback name
+        """Start the collector service the first time the window becomes visible."""
+        super().showEvent(event)
+        if not self._started:
+            self._collector_service.start()
+            self._started = True
+
+    def closeEvent(self, event) -> None:  # noqa: D401 — Qt callback name
+        """Stop the collector service cleanly on window close."""
+        self._collector_service.stop()
+        super().closeEvent(event)
+
+    def collector_service(self) -> CollectorService:
+        """Expose the underlying CollectorService (used by tests)."""
+        return self._collector_service
+
+    def _on_metrics_ready(self, snapshot) -> None:
+        """Route a snapshot to every screen that wants one."""
+        for screen in self._screens.values():
+            handler = getattr(screen, "on_snapshot", None)
+            if handler is not None:
+                handler(snapshot)
 
     # ---------------------------------------------------------------- access
 
