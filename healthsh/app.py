@@ -1,16 +1,17 @@
-"""Application entry point.
+"""Application bootstrap.
 
-For Sprint 0 / issue #3 this opens a themed empty window so the Tokyo Night
-palette and QSS can be validated end to end. The real chrome (header, sidebar,
-screen routing) lands in issue #4.
+Creates the :class:`QApplication`, applies the Tokyo Night theme, instantiates
+:class:`healthsh.ui.main_window.MainWindow`, and runs the Qt event loop until
+the user quits.
 """
 
 from __future__ import annotations
 
 import sys
 
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import QApplication
 
+from healthsh.ui.main_window import MainWindow
 from healthsh.ui.theme import apply_theme
 
 
@@ -20,12 +21,14 @@ def main() -> int:
     Returns:
         Exit status code returned from the Qt event loop.
     """
+    QApplication.setApplicationName("Healthsh")
+    QApplication.setOrganizationName("Healthsh")
+    QApplication.setApplicationDisplayName("Healthsh")
+
     app = QApplication(sys.argv)
     apply_theme(app)
 
-    window = QMainWindow()
-    window.setWindowTitle("Healthsh")
-    window.resize(600, 400)
+    window = MainWindow()
     window.show()
 
     return app.exec()
