@@ -1,28 +1,34 @@
 """Application entry point.
 
-This module is a placeholder for issue #1 — it makes the ``healthsh`` console
-script declared in ``pyproject.toml`` resolvable so ``pip install -e .`` produces
-a working install. The real Qt bootstrap lands in issue #4.
+For Sprint 0 / issue #3 this opens a themed empty window so the Tokyo Night
+palette and QSS can be validated end to end. The real chrome (header, sidebar,
+screen routing) lands in issue #4.
 """
 
 from __future__ import annotations
 
 import sys
 
+from PySide6.QtWidgets import QApplication, QMainWindow
+
+from healthsh.ui.theme import apply_theme
+
 
 def main() -> int:
     """Console entry point for the ``healthsh`` script.
 
     Returns:
-        Exit status code (0 on success). Always exits with a clear message
-        until the Qt bootstrap from issue #4 replaces this stub.
+        Exit status code returned from the Qt event loop.
     """
-    sys.stderr.write(
-        "healthsh: the application bootstrap is not yet implemented.\n"
-        "This stub exists so the package installs cleanly.\n"
-        "Follow the roadmap — issue #4 wires up the main window.\n"
-    )
-    return 0
+    app = QApplication(sys.argv)
+    apply_theme(app)
+
+    window = QMainWindow()
+    window.setWindowTitle("Healthsh")
+    window.resize(600, 400)
+    window.show()
+
+    return app.exec()
 
 
 if __name__ == "__main__":
