@@ -30,6 +30,11 @@ AVAILABLE_ICONS: frozenset[str] = frozenset(
         "settings",
         "activity-heartbeat",
         "flame",
+        "player-pause",
+        "player-play",
+        "refresh",
+        "copy",
+        "external-link",
     }
 )
 
