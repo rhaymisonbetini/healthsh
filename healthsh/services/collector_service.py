@@ -18,6 +18,7 @@ import logging
 from PySide6.QtCore import QObject, Signal
 
 from healthsh.infra.collectors.docker_collector import DockerCollector
+from healthsh.infra.collectors.journald_collector import JournaldCollector
 from healthsh.infra.threads.metrics_worker import DEFAULT_INTERVAL_S, MetricsWorker
 from healthsh.infra.threads.slow_worker import DEFAULT_INTERVAL_S as SLOW_INTERVAL_S
 from healthsh.infra.threads.slow_worker import SlowWorker
@@ -35,6 +36,7 @@ class CollectorService(QObject):
     docker_ready = Signal(
         object, object
     )  # DockerStatus, list[(ContainerInfo, ContainerStats|None)]
+    journal_ready = Signal(object)  # list[LogEntry]
 
     def __init__(
         self,
@@ -42,6 +44,7 @@ class CollectorService(QObject):
         interval_s: float = DEFAULT_INTERVAL_S,
         slow_interval_s: float = SLOW_INTERVAL_S,
         docker_collector: DockerCollector | None = None,
+        journald_collector: JournaldCollector | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -50,10 +53,12 @@ class CollectorService(QObject):
 
         self._slow_worker = SlowWorker(
             docker_collector=docker_collector,
+            journald_collector=journald_collector,
             interval_s=slow_interval_s,
             parent=self,
         )
         self._slow_worker.docker_ready.connect(self._on_docker_ready)
+        self._slow_worker.journal_ready.connect(self._on_journal_ready)
 
     # --------------------------------------------------------------- control
 
@@ -117,6 +122,10 @@ class CollectorService(QObject):
         """Force the slow worker to re-probe Docker on its next iteration."""
         self._slow_worker.request_recheck()
 
+    def journald_collector(self) -> JournaldCollector:
+        """Expose the journald collector (used by tests / the analysis layer)."""
+        return self._slow_worker.journald_collector()
+
     # ---------------------------------------------------------------- relay
 
     def _on_metrics_ready(self, snapshot: object) -> None:
@@ -126,3 +135,7 @@ class CollectorService(QObject):
     def _on_docker_ready(self, status: object, pairs: object) -> None:
         """Re-emit the Docker snapshot from the slow worker."""
         self.docker_ready.emit(status, pairs)
+
+    def _on_journal_ready(self, entries: object) -> None:
+        """Re-emit the journald batch from the slow worker."""
+        self.journal_ready.emit(entries)
