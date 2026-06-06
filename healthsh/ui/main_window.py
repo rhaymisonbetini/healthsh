@@ -164,6 +164,7 @@ class MainWindow(QMainWindow):
         )
         self._collector_service.metrics_ready.connect(self._on_metrics_ready)
         self._collector_service.docker_ready.connect(self._on_docker_ready)
+        self._collector_service.journal_ready.connect(self._on_journal_ready)
         self._started: bool = False
         # Track the widget currently mounted in the header's right slot so we
         # can remove it cleanly when switching screens.
@@ -352,6 +353,13 @@ class MainWindow(QMainWindow):
             handler = getattr(screen, "on_docker", None)
             if handler is not None:
                 handler(status, pairs)
+
+    def _on_journal_ready(self, entries) -> None:
+        """Route a journald batch to every screen that wants one."""
+        for screen in self._screens.values():
+            handler = getattr(screen, "on_journal", None)
+            if handler is not None:
+                handler(entries)
 
     # ---------------------------------------------------------------- access
 

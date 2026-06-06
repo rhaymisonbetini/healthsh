@@ -2,15 +2,54 @@
 
 from __future__ import annotations
 
+import subprocess
+from typing import Any
+
 import pytest
 
+from healthsh.domain.container import DockerStatus
 from healthsh.domain.metrics import MetricsSnapshot
+from healthsh.infra.collectors.docker_collector import DockerCollector
+from healthsh.infra.collectors.journald_collector import JournaldCollector
 from healthsh.services.collector_service import CollectorService
+
+
+def _empty_runner(_argv: list[str]) -> Any:
+    return subprocess.CompletedProcess(args=["journalctl"], returncode=0, stdout="", stderr="")
+
+
+class _DockerStub(DockerCollector):
+    """Cheap docker stub — never touches a real daemon, returns a fixed status."""
+
+    def __init__(self, *, kind: str = "not_installed") -> None:
+        # Skip the real __init__ — we own every method we override below.
+        self._cached_status = DockerStatus(kind=kind)  # type: ignore[arg-type]
+        self._client = None
+        self._last_probe_at = 0.0
+        self._factory = lambda: None
+        self._socket_path = None  # type: ignore[assignment]
+        self._clock = lambda: 0.0
+
+    def status(self) -> DockerStatus:
+        return self._cached_status  # type: ignore[return-value]
+
+    def list_containers(self) -> tuple[DockerStatus, list]:
+        return self._cached_status, []  # type: ignore[return-value]
+
+    def stats_pairs(self, infos, *, max_workers: int = 4):  # noqa: ARG002
+        return [(info, None) for info in infos]
 
 
 @pytest.fixture()
 def service(qtbot):
-    s = CollectorService(interval_s=0.05)
+    # Use stubs so the slow worker never spawns a real journalctl / docker
+    # call — tests stay deterministic and fast.
+    s = CollectorService(
+        interval_s=0.05,
+        slow_interval_s=0.05,
+        docker_collector=_DockerStub(),
+        journald_collector=JournaldCollector(runner=_empty_runner, binary_path="/fake"),
+    )
     yield s
     s.stop()
 

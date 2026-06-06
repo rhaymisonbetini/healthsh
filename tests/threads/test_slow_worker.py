@@ -2,12 +2,23 @@
 
 from __future__ import annotations
 
+import subprocess
 import threading
+from typing import Any
 
 import pytest
 
 from healthsh.domain.container import ContainerInfo, DockerStatus
+from healthsh.infra.collectors.journald_collector import JournaldCollector
 from healthsh.infra.threads.slow_worker import SlowWorker
+
+
+def _empty_journald_runner(_argv: list[str]) -> Any:
+    return subprocess.CompletedProcess(args=["journalctl"], returncode=0, stdout="", stderr="")
+
+
+def _stub_journald() -> JournaldCollector:
+    return JournaldCollector(runner=_empty_journald_runner, binary_path="/fake/journalctl")
 
 
 class _ScriptedCollector:
@@ -44,7 +55,9 @@ def test_rejects_non_positive_interval() -> None:
 def test_emits_docker_ready_each_tick(qtbot) -> None:
     """The worker emits docker_ready ≥ 2 times within a 1.5 s window at fast cadence."""
     collector = _ScriptedCollector(DockerStatus(kind="ok"))
-    worker = SlowWorker(docker_collector=collector, interval_s=0.05)
+    worker = SlowWorker(
+        docker_collector=collector, journald_collector=_stub_journald(), interval_s=0.05
+    )
     received: list[tuple[DockerStatus, list]] = []
     worker.docker_ready.connect(lambda s, p: received.append((s, p)))
 
@@ -60,7 +73,9 @@ def test_emits_docker_ready_each_tick(qtbot) -> None:
 def test_emits_typed_status_when_not_ok(qtbot) -> None:
     """When status is not_installed the worker still emits — no exceptions."""
     collector = _ScriptedCollector(DockerStatus(kind="not_installed"))
-    worker = SlowWorker(docker_collector=collector, interval_s=0.05)
+    worker = SlowWorker(
+        docker_collector=collector, journald_collector=_stub_journald(), interval_s=0.05
+    )
     received: list[DockerStatus] = []
     worker.docker_ready.connect(lambda s, _p: received.append(s))
 
@@ -75,7 +90,9 @@ def test_emits_typed_status_when_not_ok(qtbot) -> None:
 
 def test_clean_stop_within_two_seconds(qtbot) -> None:
     collector = _ScriptedCollector(DockerStatus(kind="ok"))
-    worker = SlowWorker(docker_collector=collector, interval_s=0.05)
+    worker = SlowWorker(
+        docker_collector=collector, journald_collector=_stub_journald(), interval_s=0.05
+    )
     worker.start()
     qtbot.waitUntil(worker.isRunning, timeout=1000)
     worker.request_stop()
@@ -84,7 +101,9 @@ def test_clean_stop_within_two_seconds(qtbot) -> None:
 
 def test_can_be_restarted_after_stop(qtbot) -> None:
     collector = _ScriptedCollector(DockerStatus(kind="ok"))
-    worker = SlowWorker(docker_collector=collector, interval_s=0.05)
+    worker = SlowWorker(
+        docker_collector=collector, journald_collector=_stub_journald(), interval_s=0.05
+    )
     worker.start()
     qtbot.waitUntil(worker.isRunning, timeout=1000)
     worker.request_stop()
@@ -105,7 +124,9 @@ def test_request_recheck_shortens_next_iteration(qtbot) -> None:
     """The recheck flag drops the wait between the current and next tick."""
     collector = _ScriptedCollector(DockerStatus(kind="ok"))
     # Long interval so without recheck we would not get a second emission inside the window.
-    worker = SlowWorker(docker_collector=collector, interval_s=2.0)
+    worker = SlowWorker(
+        docker_collector=collector, journald_collector=_stub_journald(), interval_s=2.0
+    )
     received: list[DockerStatus] = []
     worker.docker_ready.connect(lambda s, _p: received.append(s))
 

@@ -19,7 +19,9 @@ import threading
 from PySide6.QtCore import QThread, Signal
 
 from healthsh.domain.container import ContainerInfo, ContainerStats, DockerStatus
+from healthsh.domain.log_entry import LogEntry
 from healthsh.infra.collectors.docker_collector import DockerCollector
+from healthsh.infra.collectors.journald_collector import JournaldCollector
 
 _LOG = logging.getLogger(__name__)
 
@@ -32,11 +34,14 @@ class SlowWorker(QThread):
 
     # (DockerStatus, list[tuple[ContainerInfo, ContainerStats | None]])
     docker_ready = Signal(object, object)
+    # list[LogEntry] — only new entries since the previous tick.
+    journal_ready = Signal(object)
 
     def __init__(
         self,
         *,
         docker_collector: DockerCollector | None = None,
+        journald_collector: JournaldCollector | None = None,
         interval_s: float = DEFAULT_INTERVAL_S,
         parent=None,
     ) -> None:
@@ -50,6 +55,7 @@ class SlowWorker(QThread):
         self._stop_requested: bool = False
         self._recheck_requested: bool = False
         self._docker: DockerCollector = docker_collector or DockerCollector()
+        self._journald: JournaldCollector = journald_collector or JournaldCollector()
 
     # ------------------------------------------------------------------ API
 
@@ -78,6 +84,10 @@ class SlowWorker(QThread):
     def docker_collector(self) -> DockerCollector:
         """Expose the docker collector (used by the service for actions)."""
         return self._docker
+
+    def journald_collector(self) -> JournaldCollector:
+        """Expose the journald collector (used by the service for queries)."""
+        return self._journald
 
     def set_interval(self, interval_s: float) -> None:
         """Update the tick interval (takes effect on the next sleep)."""
@@ -115,3 +125,10 @@ class SlowWorker(QThread):
             status = DockerStatus(kind="unknown", detail=str(exc))
             pairs = []
         self.docker_ready.emit(status, pairs)
+
+        try:
+            entries: list[LogEntry] = self._journald.read_recent()
+        except Exception as exc:  # noqa: BLE001 — journald is best-effort
+            _LOG.debug("journald tick failed: %s", exc)
+            entries = []
+        self.journal_ready.emit(entries)
