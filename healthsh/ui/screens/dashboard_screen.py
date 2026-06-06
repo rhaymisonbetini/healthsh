@@ -158,6 +158,10 @@ class DashboardScreen(QWidget):
         """Whether the GPU gauge is currently mounted (used by tests and #26)."""
         return self._gpu_card is not None
 
+    def set_insight(self, insight) -> None:
+        """Replace the AI banner content with a live :class:`Insight`."""
+        self._ai_banner.set_insight(insight)
+
     # --------------------------------------------------------------- helpers
 
     def _update_cpu(self, snapshot: MetricsSnapshot) -> None:
