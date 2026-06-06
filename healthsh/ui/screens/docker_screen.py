@@ -184,6 +184,10 @@ class DockerScreen(QWidget):
         """Return the inner stacked widget (tests)."""
         return self._stack
 
+    def set_insight(self, insight) -> None:
+        """Replace the AI banner content with a live :class:`Insight`."""
+        self._ai_banner.set_insight(insight)
+
     # --------------------------------------------------------------- helpers
 
     @staticmethod

@@ -228,6 +228,10 @@ class LogsScreen(QWidget):
         """Return the inner stacked widget (tests use this)."""
         return self._stack
 
+    def set_insight(self, insight) -> None:
+        """Replace the AI banner content with a live :class:`Insight`."""
+        self._ai_banner.set_insight(insight)
+
     # --------------------------------------------------------------- helpers
 
     def _on_filter_changed(self, new_filter: LogFilter) -> None:
