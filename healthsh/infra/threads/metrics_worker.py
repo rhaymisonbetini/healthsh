@@ -24,11 +24,13 @@ from healthsh.domain.metrics import (
     GpuMetric,
     MemMetric,
     MetricsSnapshot,
+    SystemMetric,
 )
 from healthsh.infra.collectors.cpu_collector import collect_cpu
 from healthsh.infra.collectors.disk_collector import collect_disk
 from healthsh.infra.collectors.gpu.detect import collect_gpu
 from healthsh.infra.collectors.mem_collector import collect_mem
+from healthsh.infra.collectors.system_collector import collect_system
 
 _LOG = logging.getLogger(__name__)
 
@@ -107,4 +109,12 @@ class MetricsWorker(QThread):
         mem: MemMetric | None = _safe_call("mem", collect_mem)
         disk: DiskMetric | None = _safe_call("disk", collect_disk)
         gpu: GpuMetric | None = _safe_call("gpu", collect_gpu)
-        return MetricsSnapshot(cpu=cpu, mem=mem, disk=disk, gpu=gpu, ts=datetime.now(tz=UTC))
+        system: SystemMetric | None = _safe_call("system", collect_system)
+        return MetricsSnapshot(
+            cpu=cpu,
+            mem=mem,
+            disk=disk,
+            gpu=gpu,
+            ts=datetime.now(tz=UTC),
+            system=system,
+        )
