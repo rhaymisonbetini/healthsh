@@ -30,6 +30,7 @@ from healthsh.infra.collectors.cpu_collector import collect_cpu
 from healthsh.infra.collectors.disk_collector import collect_disk
 from healthsh.infra.collectors.gpu.detect import collect_gpu
 from healthsh.infra.collectors.mem_collector import collect_mem
+from healthsh.infra.collectors.process_collector import list_all as list_all_processes
 from healthsh.infra.collectors.system_collector import collect_system
 
 _LOG = logging.getLogger(__name__)
@@ -110,6 +111,7 @@ class MetricsWorker(QThread):
         disk: DiskMetric | None = _safe_call("disk", collect_disk)
         gpu: GpuMetric | None = _safe_call("gpu", collect_gpu)
         system: SystemMetric | None = _safe_call("system", collect_system)
+        processes = _safe_call("processes", list_all_processes) or []
         return MetricsSnapshot(
             cpu=cpu,
             mem=mem,
@@ -117,4 +119,5 @@ class MetricsWorker(QThread):
             gpu=gpu,
             ts=datetime.now(tz=UTC),
             system=system,
+            processes_full=tuple(processes),
         )
