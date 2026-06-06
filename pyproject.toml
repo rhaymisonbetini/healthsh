@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "healthsh"
-version = "0.2.0"
+version = "0.5.0"
 description = "AI-powered Linux desktop system health monitor (Qt 6, Python). Predicts and interprets system state, not just plots metrics."
 readme = "README.md"
 requires-python = ">=3.11"
