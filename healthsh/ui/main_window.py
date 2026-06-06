@@ -163,6 +163,7 @@ class MainWindow(QMainWindow):
             parent=self
         )
         self._collector_service.metrics_ready.connect(self._on_metrics_ready)
+        self._collector_service.docker_ready.connect(self._on_docker_ready)
         self._started: bool = False
         # Track the widget currently mounted in the header's right slot so we
         # can remove it cleanly when switching screens.
@@ -344,6 +345,13 @@ class MainWindow(QMainWindow):
             handler = getattr(screen, "on_snapshot", None)
             if handler is not None:
                 handler(snapshot)
+
+    def _on_docker_ready(self, status, pairs) -> None:
+        """Route a Docker snapshot to every screen that wants one."""
+        for screen in self._screens.values():
+            handler = getattr(screen, "on_docker", None)
+            if handler is not None:
+                handler(status, pairs)
 
     # ---------------------------------------------------------------- access
 
