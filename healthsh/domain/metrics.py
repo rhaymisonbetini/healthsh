@@ -12,7 +12,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    # Forward-only reference so the snapshot annotation stays meaningful for
+    # type-checkers without a runtime cross-import between domain modules
+    # (the CLAUDE.md rule). The default value is an empty tuple so no caller
+    # needs ProcessInfo to construct a snapshot.
+    from healthsh.domain.process import ProcessInfo
 
 GpuVendor = Literal["nvidia", "amd", "intel"]
 
@@ -66,11 +73,63 @@ class GpuMetric:
 
 
 @dataclass(frozen=True)
+class TempReading:
+    """A single temperature sensor reading in Celsius.
+
+    ``sensor`` is the friendly chip label psutil reports (``coretemp``,
+    ``k10temp``, ``acpitz``, ``nvme``…); ``value_c`` is the most representative
+    current reading for that chip (usually the package or composite value).
+    """
+
+    sensor: str
+    value_c: float
+
+
+@dataclass(frozen=True)
+class SwapMetric:
+    """Swap usage snapshot (bytes)."""
+
+    total_b: int
+    used_b: int
+
+
+@dataclass(frozen=True)
+class LoadAverage:
+    """``os.getloadavg()`` triple kept as a typed value object."""
+
+    one: float
+    five: float
+    fifteen: float
+
+
+@dataclass(frozen=True)
+class SystemMetric:
+    """System-level snapshot consumed by the System / Processes screen.
+
+    ``temps`` is an empty tuple on hardware (and most VMs) that exposes no
+    sensors — callers should never treat absence as an error.
+
+    Per-core CPU utilisation lives on :class:`CpuMetric` (already populated by
+    :func:`healthsh.infra.collectors.cpu_collector.collect_cpu`); this entity
+    only carries the *system-wide* extras (sensors, swap, load, uptime).
+    """
+
+    temps: tuple[TempReading, ...]
+    swap: SwapMetric
+    load: LoadAverage
+    uptime_s: int
+
+
+@dataclass(frozen=True)
 class MetricsSnapshot:
     """All metrics gathered in a single tick of the metrics worker.
 
     Any individual field may be ``None`` when its collector failed transiently;
     the worker keeps running and emits whatever it could capture.
+
+    ``processes_full`` is the unsorted list of every visible process, populated
+    by the System / Processes screen wiring in #16 and otherwise an empty tuple
+    so screens that do not need it pay no cost.
     """
 
     cpu: CpuMetric | None
@@ -78,3 +137,5 @@ class MetricsSnapshot:
     disk: DiskMetric | None
     gpu: GpuMetric | None
     ts: datetime
+    system: SystemMetric | None = None
+    processes_full: tuple[ProcessInfo, ...] = ()

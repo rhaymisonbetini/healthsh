@@ -6,7 +6,7 @@ from tests and from the analysis engine without instantiating an app.
 
 from __future__ import annotations
 
-from healthsh.domain.metrics import GpuMetric
+from healthsh.domain.metrics import GpuMetric, LoadAverage
 
 _GIB: int = 1024 * 1024 * 1024
 
@@ -28,6 +28,21 @@ def format_temp_c(value: float | None) -> str:
     if value is None:
         return "n/a"
     return f"{round(value)}°C"
+
+
+def format_load(load: LoadAverage | tuple[float, float, float]) -> str:
+    """Format a load-average triple as ``"0.42 / 0.55 / 0.61"``.
+
+    Accepts a :class:`LoadAverage` value object or a raw ``(1m, 5m, 15m)``
+    tuple (so the same formatter works in tests that haven't built the
+    domain object). Two decimals each, slash-separated — matches what
+    ``uptime(1)`` reports.
+    """
+    triple = (load.one, load.five, load.fifteen) if isinstance(load, LoadAverage) else load
+    if any(v < 0 for v in triple):
+        raise ValueError("format_load requires non-negative load averages")
+    one, five, fifteen = triple
+    return f"{one:.2f} / {five:.2f} / {fifteen:.2f}"
 
 
 def format_uptime(seconds: int) -> str:
