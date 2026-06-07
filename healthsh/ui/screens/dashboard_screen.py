@@ -162,6 +162,28 @@ class DashboardScreen(QWidget):
         """Replace the AI banner content with a live :class:`Insight`."""
         self._ai_banner.set_insight(insight)
 
+    def apply_thresholds(self, settings) -> None:
+        """Re-apply gauge warning/critical thresholds from a settings snapshot.
+
+        Called whenever ``thresholds.*`` changes so the gauges flip colour on
+        the very next paint. ``settings`` is duck-typed on the
+        :class:`~healthsh.services.settings_service.Settings` field names.
+        """
+        self._apply_gauge_thresholds(
+            self._cpu_gauge, settings.thresholds_cpu_warn, settings.thresholds_cpu_crit
+        )
+        self._apply_gauge_thresholds(
+            self._ram_gauge, settings.thresholds_ram_warn, settings.thresholds_ram_crit
+        )
+        self._apply_gauge_thresholds(
+            self._disk_gauge, settings.thresholds_disk_warn, settings.thresholds_disk_crit
+        )
+
+    @staticmethod
+    def _apply_gauge_thresholds(gauge: Gauge, warning: int, critical: int) -> None:
+        """Push warning/critical onto a gauge, clamping so critical >= warning."""
+        gauge.set_thresholds(warning=float(warning), critical=float(max(warning, critical)))
+
     # --------------------------------------------------------------- helpers
 
     def _update_cpu(self, snapshot: MetricsSnapshot) -> None:

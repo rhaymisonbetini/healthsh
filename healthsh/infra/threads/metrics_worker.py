@@ -83,6 +83,10 @@ class MetricsWorker(QThread):
             raise ValueError(f"interval_s must be positive, got {interval_s!r}")
         self._interval_s = float(interval_s)
 
+    def set_interval_ms(self, interval_ms: float) -> None:
+        """Update the tick interval in milliseconds (Settings cadence units)."""
+        self.set_interval(interval_ms / 1000.0)
+
     def interval_s(self) -> float:
         """Return the currently-configured tick interval in seconds."""
         return self._interval_s

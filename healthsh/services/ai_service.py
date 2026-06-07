@@ -416,6 +416,22 @@ class AIService(QObject):
         )
 
 
+def backend_from_settings(settings: Any) -> Backend:
+    """Build the concrete :class:`Backend` selected by a settings snapshot.
+
+    ``settings`` is duck-typed on the
+    :class:`~healthsh.services.settings_service.Settings` field names so this
+    module keeps no hard dependency on the settings layer. Empty API keys are
+    passed as ``None`` so the SDKs fall back to their environment lookup.
+    """
+    name = getattr(settings, "ai_backend", "ollama")
+    if name == "anthropic":
+        return AnthropicBackend(api_key=getattr(settings, "ai_anthropic_api_key", "") or None)
+    if name == "openai":
+        return OpenAIBackend(api_key=getattr(settings, "ai_openai_api_key", "") or None)
+    return OllamaBackend(endpoint=getattr(settings, "ai_ollama_endpoint", "http://localhost:11434"))
+
+
 # ---------------------------------------------------------------------------
 # Registry builder.
 # ---------------------------------------------------------------------------
