@@ -100,6 +100,10 @@ class CollectorService(QObject):
         """Update the metrics worker tick interval (used by Settings later)."""
         self._worker.set_interval(interval_s)
 
+    def set_interval_ms(self, interval_ms: float) -> None:
+        """Update the metrics worker tick interval in milliseconds (Settings units)."""
+        self._worker.set_interval_ms(interval_ms)
+
     def interval_s(self) -> float:
         """Return the current metrics worker tick interval in seconds."""
         return self._worker.interval_s()
@@ -107,6 +111,10 @@ class CollectorService(QObject):
     def set_slow_interval(self, interval_s: float) -> None:
         """Update the slow worker tick interval."""
         self._slow_worker.set_interval(interval_s)
+
+    def set_slow_interval_ms(self, interval_ms: float) -> None:
+        """Update the slow worker tick interval in milliseconds (Settings units)."""
+        self._slow_worker.set_interval_ms(interval_ms)
 
     def slow_interval_s(self) -> float:
         """Return the current slow worker tick interval."""

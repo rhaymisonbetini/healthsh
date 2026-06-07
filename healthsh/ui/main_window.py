@@ -22,7 +22,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from healthsh.infra.autostart import resolve_executable
 from healthsh.services.collector_service import CollectorService
+from healthsh.services.settings_controller import SettingsController
+from healthsh.services.settings_service import SettingsService
 from healthsh.ui.icons import get_icon_pixmap
 from healthsh.ui.screens.ai_screen import AIScreen
 from healthsh.ui.screens.dashboard_screen import DashboardScreen
@@ -153,15 +156,21 @@ class Header(QFrame):
 class MainWindow(QMainWindow):
     """Top-level chrome window with sidebar + stacked content."""
 
-    def __init__(self, *, collector_service: CollectorService | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        collector_service: CollectorService | None = None,
+        settings_service: SettingsService | None = None,
+    ) -> None:
         super().__init__()
         self.setWindowTitle("Healthsh")
         self.setMinimumSize(QSize(MIN_WIDTH, MIN_HEIGHT))
 
-        # Service is created if none is injected — tests pass a stub.
+        # Services are created if none are injected — tests pass stubs.
         self._collector_service: CollectorService = collector_service or CollectorService(
             parent=self
         )
+        self._settings_service: SettingsService = settings_service or SettingsService(parent=self)
         self._collector_service.metrics_ready.connect(self._on_metrics_ready)
         self._collector_service.docker_ready.connect(self._on_docker_ready)
         self._collector_service.journal_ready.connect(self._on_journal_ready)
@@ -211,12 +220,24 @@ class MainWindow(QMainWindow):
             "docker": DockerScreen(),
             "logs": LogsScreen(),
             "ai": AIScreen(),
-            "settings": SettingsScreen(),
+            "settings": SettingsScreen(settings_service=self._settings_service),
         }
         self._spec_by_key: dict[str, _ScreenSpec] = {s.key: s for s in SCREEN_SPECS}
 
         for spec in SCREEN_SPECS:
             self._stack.addWidget(self._screens[spec.key])
+
+        # Subscriber that turns persisted settings into live runtime effects
+        # (worker cadence, gauge thresholds, hide-to-tray, autostart).
+        self._settings_controller = SettingsController(
+            settings=self._settings_service,
+            collector=self._collector_service,
+            dashboard=self._screens["dashboard"],
+            window=self,
+            executable_path=resolve_executable(),
+            parent=self,
+        )
+        self._settings_controller.apply_all()
 
         # Wire navigation.
         self._sidebar.screen_requested.connect(self.set_screen)
@@ -339,6 +360,10 @@ class MainWindow(QMainWindow):
     def collector_service(self) -> CollectorService:
         """Expose the underlying CollectorService (used by tests)."""
         return self._collector_service
+
+    def settings_service(self) -> SettingsService:
+        """Expose the underlying SettingsService (used by tests + Settings screen)."""
+        return self._settings_service
 
     def _on_metrics_ready(self, snapshot) -> None:
         """Route a snapshot to every screen that wants one."""
